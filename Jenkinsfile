@@ -23,11 +23,20 @@ pipeline {
         stage('Approval') {
             steps {
                 script {
-                    // This stage is for manual approval before proceeding
-                    input message: 'Please approve the build.', submitter: 'approver'
-                }
+                    // Request approval from two distinct approvers
+                    def inputMessage = 'Please approve the build.'
+                    def approver1 = input(message: inputMessage, submitter: 'approver1')
+                    def approver2 = input(message: inputMessage, submitter: 'approver2')
+
+                    // Check if both approvers have approved the build
+                    if (approver1 && approver2) {
+                        echo 'Build approved by both approver1 and approver2. Proceeding...'
+                    } else {
+                        error 'Build approval requires approval from both approver1 and approver2.'
             }
         }
+    }
+}
 
         stage('Azure Login') {
             steps {
