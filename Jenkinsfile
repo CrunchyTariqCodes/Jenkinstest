@@ -29,14 +29,66 @@ pipeline {
             }
         }
 
-        // Rest of the stages remain unchanged
+        stage('Azure Login') {
+            steps {
+                script {
+                    // This stage logs into the specified Azure environment
+                    echo "Logging into Azure environment: ${params.AZURE_ENV}"
+                    // Implement your Azure login logic here
+                    // e.g., sh "az login ..."
+                }
+            }
+        }
 
-        // Add the Check and Delete Image stage here
+        stage('Check and Delete Image') {
+            steps {
+                script {
+                    def imageTag = params.IMAGE_TAG
+                    def acrName = params.ACR_NAME
 
-        // Add the Notification stage here
+                    echo "Checking image:tag ${imageTag} in ACR ${acrName}"
+
+                    // Check if the image with the specified tag exists in ACR
+                    def imageExists = sh(script: "az acr repository show-tags --name ${acrName} --repository ${imageTag} --output tsv", returnStdout: true).trim()
+                    if (imageExists != '') {
+                        echo "Image ${imageTag} found in ACR. Deleting..."
+                        // Delete the image
+                        sh "az acr repository delete --name ${acrName} --repository ${imageTag} --yes"
+                        echo "Image ${imageTag} deleted from ACR."
+                    } else {
+                        echo "Image ${imageTag} not found in ACR."
+                    }
+                }
+            }
+        }
+
+        stage('Notification') {
+            steps {
+                script {
+                    // This stage sends notification emails to the developer and approver
+                    mail to: params.DEVELOPER_EMAIL,
+                         subject: "Image Deletion Status",
+                         body: "Image deletion status: Add appropriate response here."
+
+                    mail to: params.APPROVER_EMAIL,
+                         subject: "Image Deletion Status",
+                         body: "Image deletion status: Add appropriate response here."
+                }
+            }
+        }
     }
 
     post {
-        // Post-build actions remain unchanged
+        always {
+            // Clean up or perform actions that should always happen
+        }
+        success {
+            // Actions to be taken on successful build
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            // Actions to be taken on failed build
+            echo 'Pipeline failed!'
+        }
     }
 }
