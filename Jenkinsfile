@@ -33,18 +33,33 @@ pipeline {
                         echo 'Build approved by both approver1 and approver2. Proceeding...'
                     } else {
                         error 'Build approval requires approval from both approver1 and approver2.'
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Azure Login') {
             steps {
                 script {
-                    // This stage logs into the specified Azure environment
-                    echo "Logging into Azure environment: ${params.AZURE_ENV}"
-                    // Implement your Azure login logic here
-                    // e.g., sh "az login ..."
+                    def azureServicePrincipalCredentials = credentials('your_azure_service_principal_credentials_id')
+
+                    if (azureServicePrincipalCredentials == null) {
+                        error 'Azure Service Principal credentials not found. Please configure credentials in Jenkins.'
+                    }
+
+                    def azureCredentialsId = azureServicePrincipalCredentials.id
+                    def azureTenantId = azureServicePrincipalCredentials.properties.tenantId
+                    def azureClientId = azureServicePrincipalCredentials.properties.clientId
+                    def azureClientSecret = azureServicePrincipalCredentials.properties.clientSecret
+                    def azureSubscriptionId = 'your_azure_subscription_id'  // Replace with your Azure subscription ID
+
+                    // Log in to Azure using the Azure CLI
+                    sh "az login --service-principal --username $azureClientId --password $azureClientSecret --tenant $azureTenantId"
+
+                    // Set the Azure subscription context
+                    sh "az account set --subscription $azureSubscriptionId"
+
+                    echo 'Logged in to Azure successfully.'
                 }
             }
         }
